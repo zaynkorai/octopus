@@ -1,6 +1,8 @@
 {
     "profile": "reading",
     "background": false,
+    "clicks": true,
+    "idleThreshold": 120,
     "urls": [
         "https://docs.aws.amazon.com/",
         "https://kubernetes.io/docs/home/",
@@ -11,6 +13,6 @@
         "https://prometheus.io/docs/introduction/overview/",
         "https://grafana.com/docs/"
     ],
-    "minInterval": 60,
-    "maxInterval": 180
+    "minInterval": 10,
+    "maxInterval": 100
 }

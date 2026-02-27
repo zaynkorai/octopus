@@ -26,9 +26,11 @@ program
     .description("Start simulating activity")
     .option("-p, --profile <type>", "Activity profile to run: 'reading' or 'coding'")
     .option("-b, --background", "Run silently in the background")
+    .option("-c, --clicks", "Simulate mouse clicks as well as movements")
     .option("-u, --urls <urls>", "Comma-separated list of custom URLs to read (for 'reading' profile)")
     .option("--min-interval <seconds>", "Minimum idle time in seconds")
     .option("--max-interval <seconds>", "Maximum idle time in seconds")
+    .option("--idle-threshold <seconds>", "Pause simulating if user has been active within this many seconds")
     .action(async (options) => {
         try {
             // 1. Read configuration file if it exists
@@ -47,6 +49,7 @@ program
             // 2. Merge options: CLI takes precedence over config
             const finalProfile = options.profile || configData.profile;
             const finalBackground = options.background !== undefined ? options.background : configData.background;
+            const finalClicks = options.clicks !== undefined ? options.clicks : configData.clicks;
 
             let finalUrls = undefined;
             if (options.urls) {
@@ -57,6 +60,7 @@ program
 
             const finalMinInterval = options.minInterval ? parseInt(options.minInterval, 10) : configData.minInterval;
             const finalMaxInterval = options.maxInterval ? parseInt(options.maxInterval, 10) : configData.maxInterval;
+            const finalIdleThreshold = options.idleThreshold ? parseInt(options.idleThreshold, 10) : (configData.idleThreshold !== undefined ? configData.idleThreshold : 60);
 
             // 3. Validate required options
             if (!finalProfile) {
@@ -75,7 +79,8 @@ program
                 const child = spawn(process.argv[0], args, {
                     detached: true,
                     stdio: "ignore",
-                    env: { ...process.env, ACTIVITY_BACKGROUND_CHILD: "1" }
+                    env: { ...process.env, ACTIVITY_BACKGROUND_CHILD: "1" },
+                    windowsHide: true
                 });
 
                 child.unref();
@@ -88,9 +93,9 @@ program
 
             // 5. Run the selected profile
             if (finalProfile === "reading") {
-                await runReadingProfile(finalUrls, finalMinInterval, finalMaxInterval);
+                await runReadingProfile(finalUrls, finalMinInterval, finalMaxInterval, finalClicks, finalIdleThreshold);
             } else if (finalProfile === "coding") {
-                await runCodingProfile(finalMinInterval, finalMaxInterval);
+                await runCodingProfile(finalMinInterval, finalMaxInterval, finalClicks, finalIdleThreshold);
             } else {
                 console.error("Unknown profile. Available profiles: reading, coding");
                 process.exit(1);

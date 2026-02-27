@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { randomSleep, randomChance, randomInt } from "../utils/random";
 
 const execAsync = promisify(exec);
 
@@ -58,23 +59,66 @@ export async function pressKeyWithModifiers(keyCode: number, modifiers: string[]
 }
 
 /**
- * Send keystrokes directly (typing text).
+ * Send keystrokes realistically with variable delays and occasional typos.
  */
 export async function typeText(text: string) {
-    // escaping double quotes inside the text
-    const escapedText = text.replace(/"/g, '\\"');
-    await runAppleScript(`tell application "System Events" to keystroke "${escapedText}"`);
+    for (const char of text) {
+        // Occasional typo simulation (e.g., 2% chance for alphabet letters)
+        if (/[a-zA-Z]/.test(char) && randomChance(0.02)) {
+            // Pick a random lowercase letter for the typo
+            const wrongChar = String.fromCharCode(97 + randomInt(0, 25));
+            const escapedWrongChar = wrongChar.replace(/"/g, '\\"');
+            await runAppleScript(`tell application "System Events" to keystroke "${escapedWrongChar}"`);
+            await randomSleep(100, 300); // Wait, realize the typo
+
+            // Backspace to delete the typo (key code 51 is backspace)
+            await pressKey(51);
+            await randomSleep(100, 300);
+        }
+
+        // Type the correct character
+        const escapedChar = char.replace(/"/g, '\\"');
+        await runAppleScript(`tell application "System Events" to keystroke "${escapedChar}"`);
+
+        // Natural delay between keystrokes
+        await randomSleep(30, 150);
+    }
 }
 
 /**
- * Moves the mouse cursor to a specific absolute screen location using swift natively.
+ * Moves the mouse cursor smoothly to a specific location using a Bezier/easing curve natively via swift.
+ * Optionally clicks at the destination.
  */
-export async function moveMouse(x: number, y: number) {
-    // Use swift to directly interface with CoreGraphics for silent/background cursor movement
+export async function moveMouse(x: number, y: number, click: boolean = true) {
+    const swiftScript = `
+        import CoreGraphics
+        import Foundation
+        let targetX = Double(${x})
+        let targetY = Double(${y})
+        let event = CGEvent(source: nil)
+        let startPos = event?.location ?? CGPoint(x: 0, y: 0)
+        let steps = 50
+        let sleepTime: UInt32 = 10000
+        for i in 1...steps {
+            let t = Double(i) / Double(steps)
+            let easeT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+            let currentX = startPos.x + CGFloat((targetX - Double(startPos.x)) * easeT)
+            let currentY = startPos.y + CGFloat((targetY - Double(startPos.y)) * easeT)
+            CGDisplayMoveCursorToPoint(CGMainDisplayID(), CGPoint(x: currentX, y: currentY))
+            usleep(sleepTime)
+        }
+        CGDisplayMoveCursorToPoint(CGMainDisplayID(), CGPoint(x: targetX, y: targetY))
+    `;
+
     try {
-        await execAsync(`swift -e 'import CoreGraphics; CGDisplayMoveCursorToPoint(CGMainDisplayID(), CGPoint(x: ${x}, y: ${y}))'`);
+        await execAsync(`echo '${swiftScript}' | swift -`);
+
+        if (click) {
+            // After moving, do a quick left click
+            await runAppleScript('tell application "System Events" to click');
+        }
     } catch (e) {
-        console.error("Failed to move mouse natively on macOS via swift.", e);
+        console.error("Failed to move mouse smoothly.", e);
     }
 }
 
@@ -87,5 +131,17 @@ export async function openUrl(url: string) {
         await execAsync(`open '${url}'`);
     } catch (e) {
         console.error("Failed to open URL on macOS via bash.", e);
+    }
+}
+
+/**
+ * Clicks the left mouse button at the current absolute screen location natively.
+ */
+export async function clickMouse() {
+    try {
+        const swiftScript = `import CoreGraphics; let point = CGEvent(source: nil)!.location; let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left); mouseDown?.post(tap: .cghidEventTap); let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left); mouseUp?.post(tap: .cghidEventTap)`;
+        await execAsync(`swift -e '${swiftScript}'`);
+    } catch (e) {
+        console.error("Failed to click mouse natively on macOS via swift.", e);
     }
 }

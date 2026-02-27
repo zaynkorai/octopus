@@ -1,11 +1,12 @@
 import * as mac from "./applescript";
 import * as win from "./windows";
+export { getIdleTime } from "./idle";
 
 const IS_MAC = process.platform === "darwin";
 const IS_WIN = process.platform === "win32";
 
 // Supported logical keys in our CLI profiles
-export type OSKey = "space" | "tab" | "down" | "up" | "right" | "left" | "escape" | "]" | "[";
+export type OSKey = "space" | "tab" | "down" | "up" | "right" | "left" | "escape" | "]" | "[" | "backspace" | "w";
 export type OSModifier = "ctrl" | "alt" | "shift" | "cmd";
 
 /**
@@ -66,13 +67,24 @@ export async function typeText(text: string) {
 }
 
 /**
- * Moves mouse to absolute screen coordinates
+ * Moves mouse to absolute screen coordinates smoothly and optionally clicks.
  */
-export async function moveMouse(x: number, y: number) {
+export async function moveMouse(x: number, y: number, click: boolean = true) {
     if (IS_MAC) {
-        await mac.moveMouse(x, y);
+        await mac.moveMouse(x, y, click);
     } else if (IS_WIN) {
-        await win.moveMouse(x, y);
+        await win.moveMouse(x, y, click);
+    }
+}
+
+/**
+ * Clicks the left mouse button at the current mouse position
+ */
+export async function clickMouse() {
+    if (IS_MAC) {
+        await mac.clickMouse();
+    } else if (IS_WIN) {
+        await win.clickMouse();
     }
 }
 
@@ -98,5 +110,7 @@ function getMacKeyCode(key: OSKey): number {
         case "escape": return 53;
         case "]": return 30;
         case "[": return 33;
+        case "backspace": return 51;
+        case "w": return 13;
     }
 }

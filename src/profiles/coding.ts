@@ -1,5 +1,5 @@
-import { pressKey, pressKeyWithModifiers, OSKey, typeText, moveMouse } from "../os/index";
-import { randomSleep, randomInt } from "../utils/random";
+import { pressKey, pressKeyWithModifiers, OSKey, typeText, moveMouse, clickMouse, getIdleTime } from "../os/index";
+import { randomSleep, randomInt, randomChance } from "../utils/random";
 
 const BASH_SNIPPETS = [
     "echo \"Checking system logs...\"",
@@ -12,20 +12,39 @@ const BASH_SNIPPETS = [
     "git diff"
 ];
 
-export async function runCodingProfile(minIntervalSeconds: number = 60, maxIntervalSeconds: number = 120) {
+export async function runCodingProfile(minIntervalSeconds: number = 60, maxIntervalSeconds: number = 120, clicks: boolean = false, idleThreshold: number = 60) {
     console.log(`🚀 Starting 'coding' profile silently. Writing bash scripts.`);
+
+    let lastActionTime = 0;
 
     while (true) {
         try {
+            const currentIdleTime = await getIdleTime();
+            const timeSinceLastAction = (Date.now() - lastActionTime) / 1000;
+
+            if (currentIdleTime < idleThreshold && currentIdleTime < (timeSinceLastAction - 2.0)) {
+                console.log(`=> User is currently active (Idle time: ${currentIdleTime.toFixed(1)}s). Pausing simulation...`);
+                await randomSleep(5000, 10000); // Check again after 5-10 seconds
+                continue;
+            }
+
             // 1. Move the mouse a bit
             console.log(`=> Moving the mouse...`);
-            await moveMouse(randomInt(100, 1000), randomInt(100, 800));
-            await randomSleep(500, 1500);
+            // we removed the manual clickMouse call since moveMouse defaults to true
+            await moveMouse(randomInt(100, 1000), randomInt(100, 800), clicks && randomChance(0.4));
 
-            // 2. Cycle to previous window organically occasionally
-            if (Math.random() > 0.6) {
+            // Random chance for a micro-break
+            if (randomChance(0.15)) {
+                console.log(`=> Taking a micro-break from coding...`);
+                await randomSleep(2000, 8000);
+            } else {
+                await randomSleep(500, 1500);
+            }
+
+            // 2. Cycle to previous window organically occasionally (macOS only for now to avoid Windows focus issues)
+            if (process.platform === "darwin" && Math.random() > 0.6) {
                 console.log(`=> Cycling active window...`);
-                await pressKeyWithModifiers("tab", process.platform === "darwin" ? ["cmd"] : ["alt"]);
+                await pressKeyWithModifiers("tab", ["cmd"]);
                 await randomSleep(1000, 3000);
             }
 
@@ -50,13 +69,13 @@ export async function runCodingProfile(minIntervalSeconds: number = 60, maxInter
             const movements = randomInt(2, 6);
             console.log(`=> Moving cursor ${movements} times`);
             for (let i = 0; i < movements; i++) {
-                const key: OSKey = Math.random() > 0.5 ? "down" : "up";
+                const key: OSKey = randomChance(0.5) ? "down" : "up";
                 await pressKey(key);
                 await randomSleep(300, 800);
             }
 
             // 5. Type bash script strings realistically
-            if (Math.random() > 0.4) {
+            if (randomChance(0.4)) {
                 const snippet = BASH_SNIPPETS[Math.floor(Math.random() * BASH_SNIPPETS.length)];
                 console.log(`=> Typing bash snippet: ${snippet}`);
                 // Make a new line safely
@@ -65,6 +84,7 @@ export async function runCodingProfile(minIntervalSeconds: number = 60, maxInter
             }
 
             // 6. Idle time to "think"
+            lastActionTime = Date.now();
             const idleTime = randomInt(minIntervalSeconds * 1000, maxIntervalSeconds * 1000);
             console.log(`💤 Thinking about code for ${Math.round(idleTime / 1000)} seconds...`);
             await randomSleep(idleTime, idleTime);

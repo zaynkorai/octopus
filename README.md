@@ -48,16 +48,29 @@ node dist/index.js start -p reading -b -u "https://news.ycombinator.com, https:/
 ```
 
 ### Configuration File (`activity.config.json`)
-Instead of passing URLs via the CLI every time, you can create a file named `activity.config.json` in the root directory where you run the command.
+Instead of passing arguments via the CLI every time, you can create a file named `activity.config.json` in the root directory where you run the command.
+
 ```json
 {
+  "profile": "reading",
+  "background": false,
+  "minInterval": 60,
+  "maxInterval": 180,
   "urls": [
     "https://news.ycombinator.com",
     "https://stackoverflow.com"
   ]
 }
 ```
-The simulator will automatically load URLs from this config file if the `--urls` flag is not provided.
+
+#### Settings:
+- **`profile`**: The activity profile to run (`"reading"` or `"coding"`). Overridden by CLI `-p` / `--profile`.
+- **`background`**: If `true`, the simulator runs silently detached in the background. Overridden by CLI `-b` / `--background`.
+- **`minInterval`**: Minimum idle time (in seconds) the simulator will wait before performing its next major action.
+- **`maxInterval`**: Maximum idle time (in seconds) the simulator will wait. The actual wait time is randomized between `minInterval` and `maxInterval`.
+- **`urls`**: An array of custom URLs to browse (used only by the `reading` profile). Overridden by CLI `-u` / `--urls`.
+
+The simulator will automatically load these settings from the config file if the corresponding CLI flags are not provided.
 
 ## Profiles
 
