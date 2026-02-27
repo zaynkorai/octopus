@@ -6,4 +6,4 @@ Starting activity simulation using profile: reading...\nPress Ctrl+C to stop.\n=
 ❌ macOS Permission Error:\nYour Terminal or IDE needs Accessibility permissions to simulate keystrokes.\nGo to: System Settings > Privacy & Security > Accessibility\nAnd grant permission to your Terminal or IDE, then restart the tool.
 \nError during reading cycle: Command failed: osascript -e 'tell application "System Events" to key code 125'
 36:48: execution error: System Events got an error: osascript is not allowed to send keystrokes. (1002)
-\n=> Wagging the mouse cursor...\n=> Opening documentation: https://docs.aws.amazon.com/\n=> Scrolling down 4 times\n=> Scrolling back up\n💤 Brainstorming/Reading idly for 98 seconds...\n
+\n=> Wagging the mouse cursor...\n=> Opening documentation: https://docs.aws.amazon.com/\n=> Scrolling down 4 times\n=> Scrolling back up\n💤 Brainstorming/Reading idly for 98 seconds...\n=> Wagging the mouse cursor...\n=> Cycling active window...\n=> Scrolling down 3 times\n💤 Brainstorming/Reading idly for 180 seconds...\n
